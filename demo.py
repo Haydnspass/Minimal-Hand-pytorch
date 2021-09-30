@@ -10,11 +10,13 @@ from op_pso import PSO
 import open3d
 
 device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
+# device = torch.device('cpu')
 _mano_root = 'mano/models'
 
 module = detnet().to(device)
 print('load model start')
-check_point = torch.load('new_check_point/ckp_detnet_83.pth', map_location=device)
+# check_point = torch.load('new_check_point/ckp_detnet_83.pth', map_location=device)
+check_point = torch.load('bmc_ckp.pth', map_location=device)
 model_state = module.state_dict()
 state = {}
 for k, v in check_point.items():
@@ -35,6 +37,7 @@ mano = manolayer.ManoLayer(flat_hand_mean=True,
                            use_pca=False,
                            root_rot_mode='rotmat',
                            joint_rot_mode='rotmat')
+mano = mano.to(device)
 print('start opencv')
 point_fliter = smoother.OneEuroFilter(4.0, 0.0)
 mesh_fliter = smoother.OneEuroFilter(4.0, 0.0)
@@ -51,7 +54,7 @@ view_mat = np.array([[1.0, 0.0, 0.0],
                      [0.0, -1.0, 0],
                      [0.0, 0, -1.0]])
 mesh = open3d.geometry.TriangleMesh()
-hand_verts, j3d_recon = mano(pose0, shape.float())
+hand_verts, j3d_recon = mano(pose0.to(device), shape.float().to(device))
 mesh.triangles = open3d.utility.Vector3iVector(mano.th_faces)
 hand_verts = hand_verts.clone().detach().cpu().numpy()[0]
 mesh.vertices = open3d.utility.Vector3dVector(hand_verts)
